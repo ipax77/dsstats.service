@@ -4,7 +4,6 @@ using pax.dsstats.dbng.Repositories;
 using pax.dsstats.parser;
 using pax.dsstats.shared;
 using s2protocol.NET;
-using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace dsstats.worker;
@@ -59,7 +58,7 @@ public partial class DsstatsService
                         continue;
                     }
 
-                    _ = SaveReplay(dtoRep);
+                    await SaveReplay(dtoRep);
                     Interlocked.Increment(ref decoded);
                 }
                 catch (Exception ex)
