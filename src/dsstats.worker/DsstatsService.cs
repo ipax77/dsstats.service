@@ -4,8 +4,6 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using pax.dsstats.dbng;
-
-using pax.dsstats.shared.Arcade;
 using s2protocol.NET;
 
 namespace dsstats.worker;

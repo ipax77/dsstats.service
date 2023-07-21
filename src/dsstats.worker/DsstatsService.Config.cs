@@ -42,6 +42,7 @@ public partial class DsstatsService
                 else
                 {
                     AppConfigOptions = config.AppConfigOptions;
+                    SetNamesAndFolders();
                 }
             }
             catch
