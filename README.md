@@ -34,22 +34,25 @@ The configuration is automatically set up during installation and should work fi
 {
   "AppConfigOptions": {
     "AppGuid": "465727a5-8eb4-4680-9664-04c4fac9ed7d",
-    "PlayerNames": [
-      "PAX",
-      "Xpax"
-    ],
     "ReplayFolders": [
-      "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\107095918\\1-S2-1-1234\\Replays\\Multiplayer",
-      "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\107095918\\2-S2-1-1235\\Replays\\Multiplayer",
-      "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\107095918\\3-S2-1-1236\\Replays\\Multiplayer",
-      "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\474804365\\2-S2-1-1237\\Replays\\Multiplayer"
+      "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\4321\\1-S2-1-1234\\Replays\\Multiplayer",
+      "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\4322\\2-S2-1-1235\\Replays\\Multiplayer",
+      "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\4323\\3-S2-1-1236\\Replays\\Multiplayer",
+      "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\4324\\2-S2-1-1237\\Replays\\Multiplayer"
     ],
-    "BattlenetStrings": [
-      "1-S2-1-1234",
-      "2-S2-1-1235",
-      "3-S2-1-1236",
-      "2-S2-1-1237"
-    ],
+    "RequestNames": [
+      {
+        "Name": "PAX",
+        "ToonId": 10188255,
+        "RegionId": 1,
+        "RealmId": 1
+      },
+      {
+        "Name": "PAX",
+        "ToonId": 226401,
+        "RegionId": 2,
+        "RealmId": 1
+      },
     "CPUCores": 1,
     "CheckForUpdates": true,
     "ReplayStartName": "Direct Strike",
