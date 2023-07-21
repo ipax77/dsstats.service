@@ -136,7 +136,7 @@ public partial class DsstatsService
 
     private int GetCpuCores()
     {
-        return Math.Min(1, AppConfigOptions.CPUCores);
+        return Math.Max(1, AppConfigOptions.CPUCores);
     }
 
     [GeneratedRegex("^(\\d+)-S2-(\\d+)\\-(\\d+)")]
