@@ -4,8 +4,6 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using pax.dsstats.dbng;
-
-using pax.dsstats.shared.Arcade;
 using s2protocol.NET;
 
 namespace dsstats.worker;
@@ -34,7 +32,7 @@ public partial class DsstatsService
                           IMapper mapper,
                           ILogger<DsstatsService> logger)
     {
-        CurrentVersion = new(0, 1, 1);
+        CurrentVersion = new(0, 1, 2);
 
         appFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "dsstats.worker");
@@ -64,8 +62,6 @@ public partial class DsstatsService
 
     private HashSet<Unit> Units = new();
     private HashSet<Upgrade> Upgrades = new();
-
-    private HashSet<PlayerId> PlayerIds = new();
 
     public async Task StartJob(CancellationToken token = default)
     {
