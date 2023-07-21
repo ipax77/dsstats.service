@@ -26,7 +26,7 @@ public partial class DsstatsService
                 .Where(x => x.Length > 100)
                 .Select(s => new KeyValuePair<string, DateTime>(s.FullName, s.CreationTime)));
         }
-        return files.OrderBy(o => o.Value).Select(s => s.Key).ToList();
+        return files.OrderByDescending(o => o.Value).Select(s => s.Key).ToList();
     }
 
     private async Task<List<string>> GetDbReplayPaths()

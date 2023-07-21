@@ -27,12 +27,15 @@ public partial class DsstatsService
     private readonly SemaphoreSlim ssDecode = new(1, 1);
     private readonly SemaphoreSlim ssSave = new(1, 1);
     private readonly SemaphoreSlim ssUpload = new(1, 1);
+    private int jobCounter = 0;
 
     public DsstatsService(IServiceScopeFactory scopeFactory,
                           IHttpClientFactory httpClientFactory,
                           IMapper mapper,
                           ILogger<DsstatsService> logger)
     {
+        CurrentVersion = new(0, 1, 1);
+
         appFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "dsstats.worker");
 
@@ -83,6 +86,11 @@ public partial class DsstatsService
                 logger.LogError(ex, "{Message}", ex.Message);
             }
         }
+        if (jobCounter % 10 == 0)
+        {
+            await CheckForUpdates(token);
+        }
+        jobCounter++;
     }
 
     private void EnsurePrerequisites()

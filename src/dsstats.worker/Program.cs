@@ -32,6 +32,11 @@ builder.Services.AddHttpClient("dsstats")
         options.DefaultRequestHeaders.Add("Accept", "application/json");
         options.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("DSupload77");
     });
+builder.Services.AddHttpClient("update")
+    .ConfigureHttpClient(options => {
+        options.BaseAddress = new Uri("https://github.com/ipax77/dsstats.service/releases/latest/download/");
+        options.DefaultRequestHeaders.Add("Accept", "application/octet-stream");
+    });
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 builder.Services.AddSingleton<DsstatsService>();
 builder.Services.AddScoped<IReplayRepository, ReplayRepository>();
