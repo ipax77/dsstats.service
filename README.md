@@ -52,12 +52,14 @@ The configuration is automatically set up during installation and should work fi
         "ToonId": 226401,
         "RegionId": 2,
         "RealmId": 1
-      },
+      }
+    ]
     "CPUCores": 1,
     "CheckForUpdates": true,
     "ReplayStartName": "Direct Strike",
     "ExcludeFolders": [],
     "ExcludeReplays": []
+  
   }
 }
 ```
