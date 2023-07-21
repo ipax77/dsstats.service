@@ -3,11 +3,14 @@
 
 Dsstats service is a tool designed to decode and upload Direct Strike Replays to [dsstats.pax77.org](https://dsstats.pax77.org), where player and commander statistics are calculated based on the data from your local SC2 Direct Strike replays.
 
+# Installation
+Download [dsstats.installer.msi](https://github.com/ipax77/dsstats.service/releases/latest/download/dsstats.installer.msi) and double click on the downloaded file.
+
 **Please Note:** By downloading and installing this service, you agree to allow the data from your local SC2 Direct Strike replays to be used on dsstats for calculating player and commander stats.
 
 ## Alternatives
 
-If you prefer to have full control over what and when to decode and upload your Direct Strike replays, you can use the [dsstats app](https://github.com/ipax77/dsstats) (Requires Windows 10).
+If you prefer to have full control over what and when to decode and upload your Direct Strike replays, you can use the [dsstats app](https://github.com/ipax77/dsstats) (min requirement windows10.0.19041.0).
 
 ## Functionality
 
