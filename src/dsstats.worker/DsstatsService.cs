@@ -34,7 +34,7 @@ public partial class DsstatsService
                           IMapper mapper,
                           ILogger<DsstatsService> logger)
     {
-        CurrentVersion = new(0, 1, 1);
+        CurrentVersion = new(0, 1, 2);
 
         appFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "dsstats.worker");

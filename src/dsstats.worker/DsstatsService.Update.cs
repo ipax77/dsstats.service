@@ -10,6 +10,11 @@ public partial class DsstatsService
 
     private async Task CheckForUpdates(CancellationToken token)
     {
+        if (!AppConfigOptions.CheckForUpdates)
+        {
+            return;
+        }
+
         try
         {
             var httpClient = httpClientFactory.CreateClient("update");
