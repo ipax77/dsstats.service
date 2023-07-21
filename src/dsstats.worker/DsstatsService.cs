@@ -65,8 +65,6 @@ public partial class DsstatsService
     private HashSet<Unit> Units = new();
     private HashSet<Upgrade> Upgrades = new();
 
-    private HashSet<PlayerId> PlayerIds = new();
-
     public async Task StartJob(CancellationToken token = default)
     {
         EnsurePrerequisites();

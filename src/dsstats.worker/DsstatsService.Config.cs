@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using pax.dsstats.shared;
 
 namespace dsstats.worker;
 
@@ -70,9 +71,8 @@ public partial class DsstatsService
 
     private void SetNamesAndFolders()
     {
-        HashSet<string> playerNames = new();
         HashSet<string> folderNames = new();
-        HashSet<string> battlenetStrings = new();
+        HashSet<RequestNames> requestNames = new();
 
         foreach (var sc2Dir in sc2Dirs)
         {
@@ -90,13 +90,19 @@ public partial class DsstatsService
                     continue;
                 }
 
-                var battlenetString = Path.GetFileName(target);
-                battlenetStrings.Add(battlenetString);
-
-                Match m = LnkRegex().Match(Path.GetFileName(file));
-                if (m.Success)
+                var bnetString = Path.GetFileName(target);
+                var match = BnetIdRegex().Match(bnetString);
+                if (match.Success)
                 {
-                    playerNames.Add(m.Groups[1].Value);
+                    int regionId = int.Parse(match.Groups[1].Value);
+                    int realmId = int.Parse(match.Groups[2].Value);
+                    int toonId = int.Parse(match.Groups[3].Value);
+
+                    Match m = LnkRegex().Match(Path.GetFileName(file));
+                    if (m.Success)
+                    {
+                        requestNames.Add(new(m.Groups[1].Value, toonId, regionId, realmId));
+                    }
                 }
 
                 var replayDir = Path.Combine(target, "Replays", "Multiplayer");
@@ -108,13 +114,11 @@ public partial class DsstatsService
             }
         }
 
-        AppConfigOptions.PlayerNames.Clear();
         AppConfigOptions.ReplayFolders.Clear();
-        AppConfigOptions.BattlenetStrings.Clear();
+        AppConfigOptions.RequestNames.Clear();
 
-        AppConfigOptions.PlayerNames.AddRange(playerNames);
         AppConfigOptions.ReplayFolders.AddRange(folderNames);
-        AppConfigOptions.BattlenetStrings.AddRange(battlenetStrings);
+        AppConfigOptions.RequestNames.AddRange(requestNames);
     }
 
     private static string? GetShortcutTarget(string file)
@@ -185,9 +189,8 @@ public class AppConfig
 public record AppConfigOptions
 {
     public Guid AppGuid { get; set; } = Guid.NewGuid();
-    public List<string> PlayerNames { get; set; } = new();
     public List<string> ReplayFolders { get; set; } = new();
-    public List<string> BattlenetStrings { get; set; } = new();
+    public List<RequestNames> RequestNames { get; set; } = new();
     public int CPUCores { get; set; } = 1;
     public bool AutoDecode { get; set; } = true;
     public bool CheckForUpdates { get; set; } = true;

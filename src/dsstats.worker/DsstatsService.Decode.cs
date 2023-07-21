@@ -15,8 +15,6 @@ public partial class DsstatsService
         await ssDecode.WaitAsync(token);
 
         await SetUnitsAndUpgrades();
-        SetPlayerIds();
-
         int decoded = 0;
 
         List<string> errorReplayFileNames = new();
@@ -95,11 +93,11 @@ public partial class DsstatsService
 
     private void SetIsUploader(ReplayDto replayDto)
     {
-        if (PlayerIds.Count > 0)
+        if (AppConfigOptions.RequestNames.Count > 0)
         {
             foreach (var replayPlayer in replayDto.ReplayPlayers)
             {
-                if (PlayerIds.Any(a => a.ToonId == replayPlayer.Player.ToonId
+                if (AppConfigOptions.RequestNames.Any(a => a.ToonId == replayPlayer.Player.ToonId
                     && a.RegionId == replayPlayer.Player.RegionId
                     && a.RealmId == replayPlayer.Player.RealmId))
                 {
@@ -107,26 +105,6 @@ public partial class DsstatsService
                     replayDto.PlayerResult = replayPlayer.PlayerResult;
                     replayDto.PlayerPos = replayPlayer.GamePos;
                 }
-            }
-        }
-    }
-
-    private void SetPlayerIds()
-    {
-        if (PlayerIds.Count > 0)
-        {
-            return;
-        }
-
-        foreach (var bnetString in AppConfigOptions.BattlenetStrings)
-        {
-            var match = BnetIdRegex().Match(bnetString);
-            if (match.Success)
-            {
-                int regionId = int.Parse(match.Groups[1].Value);
-                int realmId = int.Parse(match.Groups[2].Value);
-                int toonId = int.Parse(match.Groups[3].Value);
-                PlayerIds.Add(new(toonId, realmId, regionId));
             }
         }
     }

@@ -62,7 +62,21 @@ public partial class DsstatsService
         UploaderDto uploaderDto = new()
         {
             AppGuid = AppConfigOptions.AppGuid,
-            AppVersion = "99.1"
+            AppVersion = "99.2",
+            BattleNetInfos = new List<BattleNetInfoDto>() 
+            {
+                new BattleNetInfoDto() 
+                {
+                    BattleNetId = 0,
+                    PlayerUploadDtos = AppConfigOptions.RequestNames.Select(s => new PlayerUploadDto()
+                    {
+                        Name = s.Name,
+                        ToonId = s.ToonId,
+                        RegionId = s.RegionId,
+                        RealmId = s.RealmId
+                    }).ToList()
+                }
+            }
         };
 
         try
