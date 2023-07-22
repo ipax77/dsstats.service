@@ -18,7 +18,7 @@ public partial class DsstatsService
 
         var hashset = excludeReplayFilenames.ToHashSet();
         hashset.UnionWith(AppConfigOptions.ExcludeReplays);
-        AppConfigOptions.ExcludeFolders = hashset.OrderBy(o => o).ToList();
+        AppConfigOptions.ExcludeReplays = hashset.OrderBy(o => o).ToList();
         SaveConfig(AppConfigOptions);
     }
 
