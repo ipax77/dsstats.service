@@ -198,6 +198,7 @@ public record AppConfigOptions
     public bool UploadCredential { get; set; }
     public DateTime UploadAskTime { get; set; }
     public string ReplayStartName { get; set; } = "Direct Strike";
+    public List<string> CustomReplayFolders { get; set; } = new();
     public List<string> ExcludeFolders { get; set; } = new();
     public List<string> ExcludeReplays { get; set; } = new();
 }

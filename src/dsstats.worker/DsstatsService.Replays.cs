@@ -19,8 +19,17 @@ public partial class DsstatsService
     private List<string> GetHdReplayPaths()
     {
         List<KeyValuePair<string, DateTime>> files = new();
-        foreach (var dir in AppConfigOptions.ReplayFolders)
+
+        HashSet<string> dirs = new(AppConfigOptions.ReplayFolders);
+        dirs.UnionWith(AppConfigOptions.CustomReplayFolders);
+        dirs = dirs.Except(AppConfigOptions.ExcludeFolders).ToHashSet();
+
+        foreach (var dir in dirs)
         {
+            if (!Directory.Exists(dir))
+            {
+                continue;
+            }
             DirectoryInfo info = new(dir);
             files.AddRange(info.GetFiles($"{AppConfigOptions.ReplayStartName}*.SC2Replay", SearchOption.AllDirectories)
                 .Where(x => x.Length > 100)
