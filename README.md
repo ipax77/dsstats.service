@@ -25,6 +25,7 @@ If you prefer to have full control over what and when to decode and upload your 
 The configuration is automatically set up during installation and should work fine in most cases. However, if you need to make adjustments, you can do so using the following options:
 * **Location:** C:\WINDOWS\system32\config\systemprofile\AppData\Local\dsstats.worker\workerconfig.json (requires admin rights to access the path)
 * **ReplayStartName:** If you are running SC2 in a non-latin language and the Direct Strike replay names start differently, you can adjust the Direct Strike replay start name here.
+* **CustomReplayFolders:** If you have replays at other places define them here.
 * **ExcludeFolders:** If you want to prevent certain folders' replays from being uploaded, you can add them to the ExcludeFolders list.
 * **ExcludeReplays:** Lists Direct Strike replays that have failed decoding and should be excluded from the upload process.
 * **CheckForUpdates:** Set it to false if you want to manually control the updates.
@@ -57,6 +58,7 @@ The configuration is automatically set up during installation and should work fi
     "CPUCores": 1,
     "CheckForUpdates": true,
     "ReplayStartName": "Direct Strike",
+    "CustomReplayFolders": [],
     "ExcludeFolders": [],
     "ExcludeReplays": []
   

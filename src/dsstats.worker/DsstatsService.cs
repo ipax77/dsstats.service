@@ -32,7 +32,7 @@ public partial class DsstatsService
                           IMapper mapper,
                           ILogger<DsstatsService> logger)
     {
-        CurrentVersion = new(0, 1, 2);
+        CurrentVersion = new(0, 1, 3);
 
         appFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "dsstats.worker");
@@ -100,6 +100,14 @@ public partial class DsstatsService
         using var scope = scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ReplayContext>();
         context.Database.Migrate();
+
+        // If SC2 patch
+        // if (AppConfigOptions.Sc2Patch6)
+        // {
+        //     CheckExcludeReplaysAfterPatch(AppConfigOptions.Sc2Patch6Date);
+        //     AppConfigOptions.Sc2Patch6 = false;
+        //     SaveConfig(AppConfigOptions);
+        // }
     }
 
    private static List<string> GetMyDocumentsPathAllUsers()

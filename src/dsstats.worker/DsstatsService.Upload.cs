@@ -62,7 +62,7 @@ public partial class DsstatsService
         UploaderDto uploaderDto = new()
         {
             AppGuid = AppConfigOptions.AppGuid,
-            AppVersion = "99.2",
+            AppVersion = "99.3",
             BattleNetInfos = new List<BattleNetInfoDto>() 
             {
                 new BattleNetInfoDto() 
