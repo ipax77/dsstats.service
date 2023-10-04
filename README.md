@@ -66,6 +66,14 @@ The configuration is automatically set up during installation and should work fi
 }
 ```
 
+# Known limitations/issues
+
+## Windows 7
+When running the service on Windows 7 you should set the following system variables for managing the memory allocation correctly:
+set DOTNET_GCName=clrgc.dll
+set DOTNET_EnableWriteXorExecute=0
+[Reference](https://github.com/dotnet/runtime/issues/79469#issuecomment-1371202114)
+
 # Start / Stop Service
 
 The Dsstats service is set to start automatically by default. However, if you need to manually start or stop the service, you can do so using the Microsoft Management Console (MMC). Here's how:
@@ -87,3 +95,10 @@ Open a Windows Terminal as Administrator and run:
 ```shell
 sc.exe delete "dsstats.worker"
 ```
+
+# ChangeLog
+<details open="open"><summary>v0.1.4</summary>
+
+>- SC2 Patch 5.0.12 - Protocol 91115 - s2protocol.NET v0.6.12
+
+</details>
