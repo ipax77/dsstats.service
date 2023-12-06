@@ -101,7 +101,7 @@ sc.exe delete "dsstats.worker"
 # ChangeLog
 <details open="open"><summary>v2.0.0</summary>
 
->- dotnet 8 - references [dsstats][https://github.com/ipax77/dsstats] with tag v2.0.1
+>- dotnet 8 - references [dsstats](https://github.com/ipax77/dsstats) with tag v2.0.1
 
 </details>
 
