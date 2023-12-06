@@ -10,7 +10,7 @@ public partial class DsstatsService
 
     private async Task CheckForUpdates(CancellationToken token)
     {
-        if (!AppConfigOptions.CheckForUpdates)
+        if (!AppOptions.CheckForUpdates)
         {
             return;
         }

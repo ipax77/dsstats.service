@@ -1,10 +1,10 @@
 
-using System.Management;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
-using pax.dsstats.dbng;
+using dsstats.db8;
 using s2protocol.NET;
+using System.Management;
 
 namespace dsstats.worker;
 
@@ -66,14 +66,14 @@ public partial class DsstatsService
     public async Task StartJob(CancellationToken token = default)
     {
         EnsurePrerequisites();
-        UpdateConfig();
+        SetupConfig();
         var newReplays = await GetNewReplays();
         if (newReplays.Count > 0)
         {
             try
             {
                 int decoded = await Decode(newReplays, token);
-                await Upload(token);
+                await UploadReplays(token);
                 logger.LogWarning("replays decoded: {decoded}", decoded);
             }
             catch (OperationCanceledException) { }

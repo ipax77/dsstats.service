@@ -1,6 +1,6 @@
 
 using Microsoft.EntityFrameworkCore;
-using pax.dsstats.dbng;
+using dsstats.db8;
 
 namespace dsstats.worker;
 
@@ -18,24 +18,23 @@ public partial class DsstatsService
 
     private List<string> GetHdReplayPaths()
     {
-        List<KeyValuePair<string, DateTime>> files = new();
+        var folders = GetReplayFolders();
+        var filenameStart = AppOptions.ReplayStartName;
 
-        HashSet<string> dirs = new(AppConfigOptions.ReplayFolders);
-        dirs.UnionWith(AppConfigOptions.CustomReplayFolders);
-        dirs = dirs.Except(AppConfigOptions.ExcludeFolders).ToHashSet();
+        var replayPaths = new List<string>();
 
-        foreach (var dir in dirs)
+        foreach (var folder in folders)
         {
-            if (!Directory.Exists(dir))
-            {
-                continue;
-            }
-            DirectoryInfo info = new(dir);
-            files.AddRange(info.GetFiles($"{AppConfigOptions.ReplayStartName}*.SC2Replay", SearchOption.AllDirectories)
-                .Where(x => x.Length > 100)
-                .Select(s => new KeyValuePair<string, DateTime>(s.FullName, s.CreationTime)));
+            var replayFiles = Directory.GetFiles(folder, $"{filenameStart}*.SC2Replay", SearchOption.TopDirectoryOnly);
+
+            replayFiles = replayFiles.Where(file => !File.GetAttributes(file).HasFlag(FileAttributes.Directory)).ToArray();
+
+            replayPaths.AddRange(replayFiles);
         }
-        return files.OrderByDescending(o => o.Value).Select(s => s.Key).ToList();
+
+        return replayPaths
+            .Except(AppOptions.IgnoreReplays)
+            .ToList();
     }
 
     private async Task<List<string>> GetDbReplayPaths()
@@ -43,21 +42,9 @@ public partial class DsstatsService
         using var scope = scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ReplayContext>();
 
-        if (AppConfigOptions.ExcludeReplays.Count > 0)
-        {
-            return (await context.Replays
-                .AsNoTracking()
-                .Select(s => s.FileName)
-                .ToListAsync())
-                .Union(AppConfigOptions.ExcludeReplays)
-                .ToList();
-        }
-        else
-        {
-            return await context.Replays
-                .AsNoTracking()
-                .Select(s => s.FileName)
-                .ToListAsync();
-        }
+        return await context.Replays
+            .AsNoTracking()
+            .Select(s => s.FileName)
+            .ToListAsync();
     }
 }
