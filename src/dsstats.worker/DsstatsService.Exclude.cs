@@ -5,12 +5,12 @@ public partial class DsstatsService
 {
     public void CheckExcludeReplaysAfterPatch(DateTime patchDate)
     {
-        if (AppConfigOptions.ExcludeReplays.Count == 0)
+        if (AppOptions.IgnoreReplays.Count == 0)
         {
             return;
         }
 
-        List<string> excludeReplays = new(AppConfigOptions.ExcludeReplays);
+        List<string> excludeReplays = new(AppOptions.IgnoreReplays);
 
         foreach (var file in excludeReplays.ToArray())
         {
@@ -33,6 +33,6 @@ public partial class DsstatsService
                 logger.LogError("failed getting file info for {file}: {Message}", file, ex.Message);
             }
         }
-        AppConfigOptions.ExcludeReplays = excludeReplays;
+        AppOptions.IgnoreReplays = excludeReplays;
     }
 }

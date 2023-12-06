@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk.Worker">
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-dsstats.worker-b8cd172c-ee40-4d05-aa54-f9da07463ba4</UserSecretsId>
@@ -14,17 +14,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="7.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
-    <PackageReference Include="System.Management" Version="7.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
     <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\pax.dsstats.dbng\pax.dsstats.dbng.csproj" />
-    <ProjectReference Include="..\pax.dsstats.shared\pax.dsstats.shared.csproj" />
-    <ProjectReference Include="..\SqliteMigrations\SqliteMigrations.csproj" />
-    <ProjectReference Include="..\pax.dsstats.parser\pax.dsstats.parser.csproj" />
+    <ProjectReference Include="..\..\..\dsstats\src\dsstats.db8\dsstats.db8.csproj" />
+    <ProjectReference Include="..\..\..\dsstats\src\dsstats.maui\pax.dsstats.parser\pax.dsstats.parser.csproj" />
+    <ProjectReference Include="..\..\..\dsstats\src\dsstats.maui\SqliteMigrations\SqliteMigrations.csproj" />
+    <ProjectReference Include="..\..\..\dsstats\src\dsstats.shared\dsstats.shared.csproj" />
   </ItemGroup>
 </Project>
