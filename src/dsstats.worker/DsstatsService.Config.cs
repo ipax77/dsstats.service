@@ -9,6 +9,7 @@ public partial class DsstatsService
 {
     public AppOptions AppOptions = new();
     private object lockobject = new();
+    private JsonSerializerOptions jsonSerializerOptions = new() { WriteIndented = true };
 
     public AppOptions SetupConfig()
     {
@@ -81,7 +82,7 @@ public partial class DsstatsService
         lock (lockobject)
         {
             AppOptions = config with { };
-            var json = JsonSerializer.Serialize(new AppConfig() { AppOptions = AppOptions });
+            var json = JsonSerializer.Serialize(new AppConfig() { AppOptions = AppOptions }, jsonSerializerOptions);
             File.WriteAllText(configFile, json);
 
             AppOptions.ActiveProfiles = AppOptions.Sc2Profiles
