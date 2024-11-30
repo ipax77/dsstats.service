@@ -3,7 +3,7 @@
 <!-- Define the variables in "$(var.*) expressions" -->
 <?define Name = "Dsstats Service" ?>
 <?define Manufacturer = "ipax77" ?>
-<?define Version = "2.0.0.0" ?>
+<?define Version = "2.0.1.0" ?>
 <?define UpgradeCode = "88b88f8c-abb7-4aa7-9cb4-7571e4c4c924"?>
 <?define BinPath = "..\..\dsstats.worker\bin\Release\net8.0\win-x64\publish" ?>
 <!-- <?define BinPath = "..\..\..\..\..\dsstats.worker\bin\Release\net7.0\win-x64\publish" ?> -->
@@ -240,6 +240,10 @@
                 <File Source="$(BinPath)\libs2\s2protocol\versions\protocol90779.py" />
                 <File Source="$(BinPath)\libs2\s2protocol\versions\protocol90870.py" />
                 <File Source="$(BinPath)\libs2\s2protocol\versions\protocol91115.py" />
+                <File Source="$(BinPath)\libs2\s2protocol\versions\protocol92028.py" />
+                <File Source="$(BinPath)\libs2\s2protocol\versions\protocol92174.py" />
+                <File Source="$(BinPath)\libs2\s2protocol\versions\protocol92440.py" />
+                <File Source="$(BinPath)\libs2\s2protocol\versions\protocol93272.py" />
 
                 <RemoveFile Name="*.*" On="both" />
                 <RemoveFolder Id='RemoveversionsDir' Directory='versions' On='uninstall' />

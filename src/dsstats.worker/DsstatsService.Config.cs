@@ -238,7 +238,7 @@ public partial class DsstatsService
                 {
                     AppGuid = optionsV6.AppGuid,
                     CPUCores = optionsV6.CpuCoresUsedForDecoding,
-                    UploadCredential = optionsV6.AllowCleanUploads,
+                    UploadCredential = true,
                     AutoDecode = optionsV6.AutoScanForNewReplays,
                     ReplayStartName = optionsV6.ReplayStartName,
                     CheckForUpdates = optionsV6.CheckForUpdates,

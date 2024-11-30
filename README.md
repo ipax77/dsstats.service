@@ -99,7 +99,14 @@ sc.exe delete "dsstats.worker"
 ```
 
 # ChangeLog
-<details open="open"><summary>v2.0.0</summary>
+<details open="open"><summary>v2.0.1</summary>
+
+>- s2protocol 5.0.14.93272.0 (s2protocol.NET v0.8.3)
+>- references [dsstats](https://github.com/ipax77/dsstats) with tag v2.0.6
+
+</details>
+
+<details><summary>v2.0.0</summary>
 
 >- dotnet 8 - references [dsstats](https://github.com/ipax77/dsstats) with tag v2.0.1
 

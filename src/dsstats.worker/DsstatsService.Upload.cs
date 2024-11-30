@@ -28,7 +28,7 @@ public partial class DsstatsService
             UploadDto uploadDto = new()
             {
                 AppGuid = AppOptions.AppGuid,
-                AppVersion = "99.5",
+                AppVersion = "99.6",
                 RequestNames = GetRequestNames(),
                 Base64ReplayBlob = ""
             };
