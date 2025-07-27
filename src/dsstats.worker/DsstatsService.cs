@@ -13,7 +13,6 @@ public partial class DsstatsService
     private string appFolder;
     private string connectionString;
     private string configFile;
-    private string libPath;
     private List<string> sc2Dirs;
     private readonly IServiceScopeFactory scopeFactory;
     private readonly IHttpClientFactory httpClientFactory;
@@ -32,7 +31,7 @@ public partial class DsstatsService
                           IMapper mapper,
                           ILogger<DsstatsService> logger)
     {
-        CurrentVersion = new(2, 0, 1);
+        CurrentVersion = new(2, 1, 0);
 
         appFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "dsstats.worker");
@@ -41,7 +40,6 @@ public partial class DsstatsService
         connectionString = $"Data Source={Path.Combine(appFolder, "dsstats.db")}";
         var sc2Dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Starcraft II");
         sc2Dirs = new() { sc2Dir };
-        libPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "ipax77", "Dsstats Service");
 
         decoderOptions = new()
         {
