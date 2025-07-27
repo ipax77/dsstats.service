@@ -137,7 +137,7 @@ public partial class DsstatsService
     {
         if (decoder == null)
         {
-            decoder = new ReplayDecoder(libPath);
+            decoder = new ReplayDecoder();
         }
         return decoder;
     }
