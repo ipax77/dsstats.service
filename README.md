@@ -99,7 +99,15 @@ sc.exe delete "dsstats.worker"
 ```
 
 # ChangeLog
-<details open="open"><summary>v2.0.1</summary>
+
+<details open="open"><summary>v2.1.0</summary>
+
+>- s2protocol.NET v0.9.0 - IronPython requirements removed
+>- WixToolset v6.0.1
+
+</details>
+
+<details><summary>v2.0.1</summary>
 
 >- s2protocol 5.0.14.93272.0 (s2protocol.NET v0.8.3)
 >- references [dsstats](https://github.com/ipax77/dsstats) with tag v2.0.6
