@@ -1,153 +1,172 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using dsstats.db;
+using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using System.Text.RegularExpressions;
-using dsstats.shared;
 
-namespace dsstats.worker;
+namespace dsstats.service;
 
 public partial class DsstatsService
 {
-    public AppOptions AppOptions = new();
-    private object lockobject = new();
-    private JsonSerializerOptions jsonSerializerOptions = new() { WriteIndented = true };
+    public event EventHandler? CultureChanged;
 
-    public AppOptions SetupConfig()
+    private void OnCultureChanged()
     {
-        if (!File.Exists(configFile))
-        {
-            AppOptions = new();
-            InitOptions();
-        }
-        else
-        {
-            string content = string.Empty;
-            try
-            {
-                content = File.ReadAllText(configFile);
+        CultureChanged?.Invoke(this, EventArgs.Empty);
+    }
 
-                var config = JsonSerializer.Deserialize<AppConfig>(content);
-                if (config == null)
+    public async Task<MauiConfig> GetConfig()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<DsstatsContext>();
+
+        var config = await context.MauiConfig
+            .Include(i => i.Sc2Profiles)
+            .AsNoTracking()
+            .OrderBy(o => o.MauiConfigId)
+            .FirstOrDefaultAsync();
+
+        if (config is null)
+        {
+            config = new();
+            config.UploadCredential = true;
+            config.Sc2Profiles = GetInitialNamesAndFolders();
+            context.MauiConfig.Add(config);
+            await context.SaveChangesAsync();
+        }
+        return config;
+    }
+
+    public async Task SaveConfig(MauiConfig config)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<DsstatsContext>();
+
+        var dbConfig = await context.MauiConfig
+            .Include(c => c.Sc2Profiles)
+            .FirstOrDefaultAsync();
+
+        if (dbConfig is null)
+        {
+            context.MauiConfig.Add(config);
+            await context.SaveChangesAsync();
+            return;
+        }
+
+        bool cultureChanged = dbConfig.Culture != config.Culture;
+
+        context.Entry(dbConfig).CurrentValues.SetValues(config);
+
+        // Remove deleted profiles
+        foreach (var existing in dbConfig.Sc2Profiles.ToList())
+        {
+            bool stillPresent = config.Sc2Profiles.Any(p =>
+                p.ToonId.Region == existing.ToonId.Region &&
+                p.ToonId.Realm == existing.ToonId.Realm &&
+                p.ToonId.Id == existing.ToonId.Id);
+
+            if (!stillPresent)
+            {
+                context.Sc2Profiles.Remove(existing);
+            }
+        }
+
+        // Add or update profiles
+        foreach (var profile in config.Sc2Profiles)
+        {
+            var existing = dbConfig.Sc2Profiles.FirstOrDefault(p =>
+                p.ToonId.Region == profile.ToonId.Region &&
+                p.ToonId.Realm == profile.ToonId.Realm &&
+                p.ToonId.Id == profile.ToonId.Id);
+
+            if (existing == null)
+            {
+                dbConfig.Sc2Profiles.Add(profile);
+            }
+            else
+            {
+                context.Entry(existing).CurrentValues.SetValues(profile);
+
+                // Owned type must be updated explicitly
+                context.Entry(existing).Reference(p => p.ToonId)
+                    .CurrentValue = profile.ToonId;
+            }
+        }
+
+        await context.SaveChangesAsync();
+
+        if (cultureChanged)
+        {
+            OnCultureChanged();
+        }
+    }
+
+    public static List<CultureInfo> GetSupportedCultures()
+    {
+        return
+        [
+            new CultureInfo("en"),
+            new CultureInfo("de"),
+            new CultureInfo("fr"),
+            new CultureInfo("es"),
+            new CultureInfo("ru"),
+            new CultureInfo("uk"),
+        ];
+    }
+
+    public static List<Sc2Profile> DiscoverProfiles()
+    {
+        return GetInitialNamesAndFolders();
+    }
+
+    public static List<Sc2Profile> GetInitialNamesAndFolders()
+    {
+        var sc2Dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Starcraft II");
+        HashSet<Sc2Profile> profiles = [];
+
+        if (Directory.Exists(sc2Dir))
+        {
+            foreach (var file in Directory.GetFiles(sc2Dir, "*.lnk", SearchOption.TopDirectoryOnly))
+            {
+                var target = GetShortcutTarget(file);
+
+                if (target == null)
                 {
-                    AppOptions = TrySetOptionsFromV6(content);
-                    InitOptions();
+                    continue;
+                }
+
+                Sc2Profile profile = new() { Active = true };
+
+                var battlenetString = Path.GetFileName(target);
+                var playerId = GetPlayerIdFromFolder(battlenetString);
+                if (playerId == null)
+                {
+                    continue;
+                }
+                profile.ToonId = playerId;
+
+                Match m = LinkRx().Match(Path.GetFileName(file));
+                if (m.Success)
+                {
+                    profile.Name = m.Groups[1].Value;
+                }
+
+                var replayDir = Path.Combine(target, "Replays", "Multiplayer");
+
+                if (Directory.Exists(replayDir))
+                {
+                    profile.Folder = replayDir;
                 }
                 else
                 {
-                    AppOptions = config.AppOptions;
+                    continue;
                 }
-            }
-            catch
-            {
-                AppOptions = TrySetOptionsFromV6(content);
-                InitOptions();
-            }
-        }
-        AppOptions.Sc2Profiles = GetInitialNamesAndFolders();
-        AppOptions.ActiveProfiles = AppOptions.Sc2Profiles
-            .Except(AppOptions.IgnoreProfiles)
-            .Distinct()
-            .ToList();
-
-        return AppOptions;
-    }
-
-    public List<RequestNames> GetRequestNames()
-    {
-        return AppOptions.ActiveProfiles.Select(s => new RequestNames()
-        {
-            Name = s.Name,
-            ToonId = s.PlayerId.ToonId,
-            RealmId = s.PlayerId.RealmId,
-            RegionId = s.PlayerId.RegionId
-        }).ToList();
-    }
-
-    public List<string> GetReplayFolders()
-    {
-        HashSet<string> folders = AppOptions.ActiveProfiles.Select(s => s.Folder).ToHashSet();
-        folders.UnionWith(AppOptions.CustomFolders);
-        return folders.ToList();
-    }
-
-    public void AddReplaysToIgnoreList(List<string> replayPaths)
-    {
-        var ignoredReplays = AppOptions.IgnoreReplays.ToHashSet();
-        ignoredReplays.UnionWith(replayPaths);
-        AppOptions.IgnoreReplays = ignoredReplays.ToList();
-        UpdateConfig(AppOptions);
-    }
-
-    public void UpdateConfig(AppOptions config)
-    {
-        lock (lockobject)
-        {
-            AppOptions = config with { };
-            var json = JsonSerializer.Serialize(new AppConfig() { AppOptions = AppOptions }, jsonSerializerOptions);
-            File.WriteAllText(configFile, json);
-
-            AppOptions.ActiveProfiles = AppOptions.Sc2Profiles
-                .Except(AppOptions.IgnoreProfiles)
-                .Distinct()
-                .ToList();
-        }
-    }
-
-    public void InitOptions()
-    {
-        UpdateConfig(AppOptions);
-    }
-
-    private List<Sc2Profile> GetInitialNamesAndFolders()
-    {
-        HashSet<Sc2Profile> profiles = new();
-
-        foreach (var sc2Dir in sc2Dirs)
-        {
-            if (Directory.Exists(sc2Dir))
-            {
-                foreach (var file in Directory.GetFiles(sc2Dir, "*.lnk", SearchOption.TopDirectoryOnly))
-                {
-                    var target = GetShortcutTarget(file);
-
-                    if (target == null)
-                    {
-                        continue;
-                    }
-
-                    Sc2Profile profile = new();
-
-                    var battlenetString = Path.GetFileName(target);
-                    var playerId = GetPlayerIdFromFolder(battlenetString);
-                    if (playerId == null)
-                    {
-                        continue;
-                    }
-                    profile.PlayerId = playerId;
-
-                    Match m = LinkRx().Match(Path.GetFileName(file));
-                    if (m.Success)
-                    {
-                        profile.Name = m.Groups[1].Value;
-                    }
-
-                    var replayDir = Path.Combine(target, "Replays", "Multiplayer");
-
-                    if (Directory.Exists(replayDir))
-                    {
-                        profile.Folder = replayDir;
-                    }
-                    else
-                    {
-                        continue;
-                    }
-                    profiles.Add(profile);
-                }
+                profiles.Add(profile);
             }
         }
         return profiles.ToList();
     }
 
-    private static PlayerId? GetPlayerIdFromFolder(string folder)
+    private static ToonId? GetPlayerIdFromFolder(string folder)
     {
         Match m = ProfileRx().Match(folder);
         if (m.Success)
@@ -160,7 +179,12 @@ public partial class DsstatsService
                 && int.TryParse(realm, out int realmId)
                 && int.TryParse(toon, out int toonId))
             {
-                return new(toonId, realmId, regionId);
+                return new()
+                {
+                    Id = toonId,
+                    Region = regionId,
+                    Realm = realmId,
+                };
             }
         }
         return null;
@@ -223,100 +247,8 @@ public partial class DsstatsService
             return null;
         }
     }
-
-    private AppOptions TrySetOptionsFromV6(string content)
-    {
-        try
-        {
-            var optionsV6 = JsonSerializer.Deserialize<UserSettingsV6>(content);
-            if (optionsV6 is null)
-            {
-                return new();
-            }
-            else
-            {
-                return new()
-                {
-                    AppGuid = optionsV6.AppGuid,
-                    CPUCores = optionsV6.CpuCoresUsedForDecoding,
-                    UploadCredential = true,
-                    AutoDecode = optionsV6.AutoScanForNewReplays,
-                    ReplayStartName = optionsV6.ReplayStartName,
-                    CheckForUpdates = optionsV6.CheckForUpdates,
-                    Sc2Profiles = GetInitialNamesAndFolders()
-                };
-            }
-        }
-        catch
-        {
-            return new();
-        }
-    }
-
     [GeneratedRegex(@"(.*)_\d+\@\d+\.lnk$", RegexOptions.IgnoreCase)]
     private static partial Regex LinkRx();
     [GeneratedRegex(@"^(\d+)-S2-(\d+)-(\d+)$", RegexOptions.IgnoreCase)]
     private static partial Regex ProfileRx();
-}
-
-public record AppConfig
-{
-    public AppOptions AppOptions { get; set; } = new();
-}
-
-public record UserSettingsV6
-{
-    public Guid AppGuid { get; set; } = Guid.NewGuid();
-    public Guid DbGuid { get; set; } = Guid.Empty;
-    public List<BattleNetInfoV6> BattleNetInfos { get; set; } = new();
-    public int CpuCoresUsedForDecoding { get; set; } = 2;
-    public bool AllowUploads { get; set; }
-    public bool AllowCleanUploads { get; set; }
-    public bool AutoScanForNewReplays { get; set; } = true;
-    public string ReplayStartName { get; set; } = "Direct Strike";
-    public List<string> PlayerNames { get; set; } = new();
-    public List<string> ReplayPaths { get; set; } = new();
-    public DateTime UploadAskTime { get; set; }
-    public bool CheckForUpdates { get; set; } = true;
-    public bool DoV1_0_8_Init { get; set; } = true;
-    public bool DoV1_1_2_Init { get; set; } = true;
-}
-
-public record BattleNetInfoV6
-{
-    public int BattleNetId { get; set; }
-    public List<ToonIdInfoV6> ToonIds { get; set; } = new();
-}
-
-public record ToonIdInfoV6
-{
-    public int RegionId { get; set; }
-    public int ToonId { get; set; }
-    public int RealmId { get; set; } = 1;
-}
-
-public record AppOptions
-{
-    public int ConfigVersion { get; init; } = 2;
-    public Guid AppGuid { get; set; } = Guid.NewGuid();
-    [JsonIgnore]
-    public List<Sc2Profile> ActiveProfiles { get; set; } = new();
-    [JsonIgnore]
-    public List<Sc2Profile> Sc2Profiles { get; set; } = new();
-    public List<Sc2Profile> IgnoreProfiles { get; set; } = new();
-    public List<string> CustomFolders { get; set; } = new();
-    public int CPUCores { get; set; } = 2;
-    public bool AutoDecode { get; set; } = true;
-    public bool CheckForUpdates { get; set; } = true;
-    public bool UploadCredential { get; set; } = true;
-    public DateTime UploadAskTime { get; set; }
-    public List<string> IgnoreReplays { get; set; } = new();
-    public string ReplayStartName { get; set; } = "Direct Strike";
-}
-
-public record Sc2Profile
-{
-    public string Name { get; set; } = string.Empty;
-    public PlayerId PlayerId { get; set; } = new();
-    public string Folder { get; set; } = string.Empty;
 }

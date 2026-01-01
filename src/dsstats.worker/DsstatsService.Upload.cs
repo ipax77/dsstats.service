@@ -1,155 +1,140 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
-using dsstats.db8;
-using dsstats.shared;
+﻿using dsstats.db;
+using dsstats.service.Models;
+using dsstats.shared.Upload;
 using Microsoft.EntityFrameworkCore;
 using System.IO.Compression;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
-namespace dsstats.worker;
+namespace dsstats.service;
 
 public partial class DsstatsService
 {
-    private readonly string uploaderController = "/api8/v1/Upload";
-    private readonly SemaphoreSlim uploadSs = new(1, 1);
-
-    public async Task<bool> UploadReplays(CancellationToken token)
+    public async Task<UploadResult> Upload(CancellationToken token)
     {
-        if (!AppOptions.UploadCredential)
+        var config = await GetConfig();
+        if (!config.UploadCredential)
         {
-            return true;
+            _uploadStatus = UploadStatus.Forbidden;
+            return new();
         }
+        _uploadStatus = UploadStatus.Uploading;
+        int take = 1000;
 
-        await uploadSs.WaitAsync();
+        using var scope = scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<DsstatsContext>();
+        var httpClient = httpClientFactory.CreateClient("dsstats");
+
         try
         {
-            UploadDto uploadDto = new()
+            while (!token.IsCancellationRequested)
             {
-                AppGuid = AppOptions.AppGuid,
-                AppVersion = "99.7",
-                RequestNames = GetRequestNames(),
-                Base64ReplayBlob = ""
-            };
+                var replays = await context.Replays
+                    .Where(x => !x.Uploaded)
+                    .AsNoTracking()
+                    .OrderByDescending(o => o.Gametime)
+                    .Include(i => i.Players)
+                        .ThenInclude(i => i.Player)
+                    .Include(i => i.Players)
+                        .ThenInclude(i => i.Upgrades)
+                            .ThenInclude(i => i.Upgrade)
+                    .Include(i => i.Players)
+                        .ThenInclude(i => i.Spawns)
+                            .ThenInclude(i => i.Units)
+                                .ThenInclude(i => i.Unit)
+                    .AsSplitQuery()
+                        .Take(take)
+                        .ToListAsync(token);
 
-            int skip = 0;
-            int take = 1000;
-
-            var replays = await GetUploadReplays(skip, take, token);
-
-            if (replays.Count == 0)
-            {
-                return true;
-            }
-
-            var httpClient = httpClientFactory.CreateClient("dsstats");
-
-            while (replays.Count > 0)
-            {
-                replays.ForEach(f =>
+                if (replays.Count == 0)
                 {
-                    f.FileName = string.Empty;
-                    f.PlayerResult = PlayerResult.None;
-                    f.PlayerPos = 0;
-                });
-                replays.SelectMany(s => s.ReplayPlayers).ToList().ForEach(f =>
+                    break;
+                }
+
+                UploadRequestDto upload = new()
                 {
-                    f.MmrChange = 0;
-                });
+                    AppGuid = config.AppGuid,
+                    AppVersion = config.Version,
+                    RequestNames = config.Sc2Profiles
+                        .Where(x => x.ToonId.Id > 0)
+                        .Select(s => new RequestNames()
+                    {
+                        Name = s.Name,
+                        ToonId = s.ToonId.Id,
+                        RegionId = s.ToonId.Region,
+                        RealmId = s.ToonId.Realm,
+                    }).ToList(),
+                    Replays = replays.Select(s => s.ToDto()).ToList(),
+                };
+                upload.Replays.ForEach(f => f.FileName = string.Empty);
 
-                var base64string = GetBase64String(replays);
+                if (replays.Count > 1)
+                {
+                    var json = JsonSerializer.Serialize(upload);
 
-                var response = await httpClient
-                    .PostAsJsonAsync($"{uploaderController}/ImportReplays",
-                        uploadDto with { Base64ReplayBlob = base64string }, token);
+                    var content = new ByteArrayContent(CompressBrotli(json));
 
-                response.EnsureSuccessStatusCode();
+                    content.Headers.ContentType =
+                        new MediaTypeHeaderValue("application/json");
 
-                // replayHashes.AddRange(replays.Select(s => s.ReplayHash));
-                await SetUploadedFlag(replays.Select(s => s.ReplayHash).ToList(), token);
+                    content.Headers.ContentEncoding.Add("br");
 
-                // skip += take;
-                replays = await GetUploadReplays(skip, take, token);
+                    var result = await httpClient.PostAsync("api10/Upload", content, token);
+                    result.EnsureSuccessStatusCode();
+                }
+                else
+                {
+                    var result = await httpClient.PostAsJsonAsync("api10/Upload", upload, token);
+                    result.EnsureSuccessStatusCode();
+                }
+
+                var replayIds = replays.Select(s => s.ReplayId).ToList();
+                await context.Replays
+                    .Where(x => replayIds.Contains(x.ReplayId))
+                    .ExecuteUpdateAsync(e => e.SetProperty(p => p.Uploaded, true));
             }
-            // await SetUploadedFlag(replayHashes);
+            _uploadStatus = UploadStatus.Success;
+            return new() { Success = true };
         }
-        catch (HttpRequestException ex)
+        catch (OperationCanceledException)
         {
-            logger.LogError("failed uploading replays: {error}", ex.Message);
-            return false;
+            _uploadStatus = UploadStatus.None;
+            return new() { Success = true };
         }
         catch (Exception ex)
         {
-            logger.LogError("failed uploading replays: {error}", ex.Message);
-            return false;
-        }
-        finally
-        {
-            uploadSs.Release();
-        }
-        return true;
-    }
-
-    private async Task<List<ReplayDto>> GetUploadReplays(int skip, int take, CancellationToken token)
-    {
-        using var scope = scopeFactory.CreateAsyncScope();
-        using var context = scope.ServiceProvider.GetRequiredService<ReplayContext>();
-        var mapper = scope.ServiceProvider.GetRequiredService<IMapper>();
-
-        return await context.Replays
-            .Include(i => i.ReplayPlayers)
-                .ThenInclude(t => t.Spawns)
-                    .ThenInclude(t => t.Units)
-                        .ThenInclude(t => t.Unit)
-            .Include(i => i.ReplayPlayers)
-                .ThenInclude(t => t.Player)
-                .AsNoTracking()
-                .AsSplitQuery()
-            .OrderByDescending(o => o.GameTime)
-                .ThenBy(o => o.ReplayId)
-            .Where(x => !x.Uploaded)
-            .Skip(skip)
-            .Take(take)
-            .ProjectTo<ReplayDto>(mapper.ConfigurationProvider)
-            .ToListAsync(token);
-    }
-
-    private async Task SetUploadedFlag(List<string> importedReplayHashes, CancellationToken token)
-    {
-        if (importedReplayHashes.Count == 0)
-        {
-            return;
-        }
-
-        using var scope = scopeFactory.CreateAsyncScope();
-        using var context = scope.ServiceProvider.GetRequiredService<ReplayContext>();
-
-        string replayHashString = String.Join(", ", importedReplayHashes.Select(s => $"'{s}'"));
-
-        string updateCommand = $"UPDATE {nameof(ReplayContext.Replays)} SET {nameof(Replay.Uploaded)} = 1 WHERE {nameof(Replay.ReplayHash)} IN ({replayHashString});";
-
-        await context.Database.ExecuteSqlRawAsync(updateCommand, token);
-    }
-
-    private string GetBase64String(List<ReplayDto> replays)
-    {
-        var json = JsonSerializer.Serialize(replays);
-        return Zip(json);
-    }
-
-    private static string Zip(string str)
-    {
-        var bytes = Encoding.UTF8.GetBytes(str);
-
-        using (var msi = new MemoryStream(bytes))
-        using (var mso = new MemoryStream())
-        {
-            using (var gs = new GZipStream(mso, CompressionMode.Compress))
+            _uploadStatus = UploadStatus.Failed;
+            return new()
             {
-                msi.CopyTo(gs);
-            }
-            return Convert.ToBase64String(mso.ToArray());
+                Error = ex.Message,
+            };
         }
+    }
+
+    static byte[] Compress(string text)
+    {
+        var bytes = Encoding.UTF8.GetBytes(text);
+
+        using var ms = new MemoryStream();
+        using (var gz = new GZipStream(ms, CompressionLevel.Fastest))
+        {
+            gz.Write(bytes, 0, bytes.Length);
+        }
+        return ms.ToArray();
+    }
+
+    static byte[] CompressBrotli(string text)
+    {
+        var bytes = Encoding.UTF8.GetBytes(text);
+
+        using var ms = new MemoryStream();
+        using (var br = new BrotliStream(ms, CompressionLevel.Fastest, leaveOpen: true))
+        {
+            br.Write(bytes, 0, bytes.Length);
+        }
+
+        return ms.ToArray();
     }
 }

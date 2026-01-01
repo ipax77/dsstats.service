@@ -1,9 +1,10 @@
 using dsstats.worker;
-using dsstats.db8;
-using dsstats.shared;
+using dsstats.db;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Headers;
-using dsstats.db8.AutoMapper;
+using dsstats.service;
+using dsstats.dbServices;
+using System.Net;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddWindowsService(options =>
@@ -13,12 +14,10 @@ builder.Services.AddWindowsService(options =>
 
 var sqliteConnectionString = $"Data Source={Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "dsstats.worker", "dsstats.db")}";
-builder.Services.AddOptions<DbImportOptions>()
-    .Configure(x => x.ImportConnectionString = sqliteConnectionString);
-builder.Services.AddDbContext<ReplayContext>(options => options
+builder.Services.AddDbContext<DsstatsContext>(options => options
     .UseSqlite(sqliteConnectionString, sqlOptions =>
     {
-        sqlOptions.MigrationsAssembly("SqliteMigrations");
+        sqlOptions.MigrationsAssembly("dsstats.migrations.sqlite");
         sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);
     })
 //.EnableDetailedErrors()
@@ -26,25 +25,33 @@ builder.Services.AddDbContext<ReplayContext>(options => options
 );
 
 builder.Services.AddHttpClient("dsstats")
-    .ConfigureHttpClient(options => {
+    .ConfigureHttpClient(options =>
+    {
         options.BaseAddress = new Uri("https://dsstats.pax77.org");
         // options.BaseAddress = new Uri("http://localhost:5116");
         options.DefaultRequestHeaders.Add("Accept", "application/json");
         options.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("DS8upload77");
+    }).ConfigurePrimaryHttpMessageHandler(() =>
+    new HttpClientHandler
+    {
+        AutomaticDecompression =
+            DecompressionMethods.GZip |
+            DecompressionMethods.Brotli,
     });
+
 builder.Services.AddHttpClient("update")
-    .ConfigureHttpClient(options => {
+    .ConfigureHttpClient(options =>
+    {
         options.BaseAddress = new Uri("https://github.com/ipax77/dsstats.service/releases/latest/download/");
         options.DefaultRequestHeaders.Add("Accept", "application/octet-stream");
     });
-builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 builder.Services.AddSingleton<DsstatsService>();
-builder.Services.AddScoped<ReplayRepository>();
+builder.Services.AddSingleton<IImportService, ImportService>();
 builder.Services.AddHostedService<WindowsBackgroundService>();
 
 builder.Logging.AddConfiguration(
     builder.Configuration.GetSection("Logging"));
-    
+
 var host = builder.Build();
 
 var dsstatsService = host.Services.GetRequiredService<DsstatsService>();

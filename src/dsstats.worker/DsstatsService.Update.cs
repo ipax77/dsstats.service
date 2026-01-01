@@ -1,8 +1,7 @@
-
 using System.Diagnostics;
 using System.Security.Cryptography;
 
-namespace dsstats.worker;
+namespace dsstats.service;
 
 public partial class DsstatsService
 {
@@ -26,13 +25,11 @@ public partial class DsstatsService
                 return;
             }
 
-            logger.LogWarning("New version available {latestVersion}", latestVersion.ToString());
 
             byte[] binfileBytes = await httpClient.GetByteArrayAsync("dsstats.installer.msi", token);
 
             if (!CheckHash(binfileBytes, sha256hash))
             {
-                logger.LogError("Update msi file integrity check failed.");
                 return;
             }
 
@@ -55,7 +52,7 @@ public partial class DsstatsService
     private bool CheckHash(byte[] binfileBytes, string sha256hash)
     {
         var fileHash = SHA256.HashData(binfileBytes);
-        string hash = BitConverter.ToString(fileHash).Replace("-", string.Empty);
+        string hash = Convert.ToHexString(fileHash);
         return string.Equals(hash, sha256hash, StringComparison.OrdinalIgnoreCase);
     }
 

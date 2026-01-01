@@ -1,4 +1,4 @@
-using System.Security.Principal;
+using dsstats.service;
 
 namespace dsstats.worker;
 
@@ -24,7 +24,8 @@ public sealed class WindowsBackgroundService : BackgroundService
             {
                 try
                 {
-                    await dsstatsService.StartJob(stoppingToken);
+                    ImportState importState = new();
+                    await dsstatsService.StartImportAsync(importState);
                 }
                 catch (Exception ex)
                 {

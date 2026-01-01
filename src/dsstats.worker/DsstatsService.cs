@@ -1,177 +1,74 @@
-
-using AutoMapper;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Win32;
-using dsstats.db8;
+﻿using dsstats.service.Models;
 using s2protocol.NET;
-using System.Management;
 
-namespace dsstats.worker;
+namespace dsstats.service;
 
-public partial class DsstatsService
+public sealed partial class DsstatsService(IServiceScopeFactory scopeFactory, IHttpClientFactory httpClientFactory, ILogger<DsstatsService> logger) : IDisposable
 {
-    private string appFolder;
-    private string connectionString;
-    private string configFile;
-    private List<string> sc2Dirs;
-    private readonly IServiceScopeFactory scopeFactory;
-    private readonly IHttpClientFactory httpClientFactory;
-    private readonly IMapper mapper;
-    private readonly ILogger<DsstatsService> logger;
-
-    private ReplayDecoderOptions decoderOptions;
-    private ReplayDecoder? decoder;
-    private readonly SemaphoreSlim ssDecode = new(1, 1);
-    private readonly SemaphoreSlim ssSave = new(1, 1);
-    private readonly SemaphoreSlim ssUpload = new(1, 1);
-    private int jobCounter = 0;
-
-    public DsstatsService(IServiceScopeFactory scopeFactory,
-                          IHttpClientFactory httpClientFactory,
-                          IMapper mapper,
-                          ILogger<DsstatsService> logger)
+    private readonly ReplayDecoder _replayDecoder = new();
+    private readonly ReplayDecoderOptions _decoderOptions = new()
     {
-        CurrentVersion = new(2, 1, 0);
+        Initdata = true,
+        Details = true,
+        Metadata = true,
+        TrackerEvents = true,
+    };
 
-        appFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "dsstats.worker");
+    #region Public API
 
-        configFile = Path.Combine(appFolder, "workerconfig.json");
-        connectionString = $"Data Source={Path.Combine(appFolder, "dsstats.db")}";
-        var sc2Dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Starcraft II");
-        sc2Dirs = new() { sc2Dir };
-
-        decoderOptions = new()
-        {
-            Initdata = true,
-            Details = true,
-            Metadata = true,
-            MessageEvents = false,
-            TrackerEvents = true,
-            GameEvents = false,
-            AttributeEvents = false
-        };
-
-        this.scopeFactory = scopeFactory;
-        this.httpClientFactory = httpClientFactory;
-        this.mapper = mapper;
-        this.logger = logger;
+    public List<ReplayError> GetReplayErrors()
+    {
+        return _replayErrors.ToList();
     }
 
-    private HashSet<Unit> Units = new();
-    private HashSet<Upgrade> Upgrades = new();
-
-    public async Task StartJob(CancellationToken token = default)
+    public async Task StartImportAsync(
+    ImportState importState, DecodeStatus? decodeStatus = null)
     {
-        EnsurePrerequisites();
-        SetupConfig();
-        var newReplays = await GetNewReplays();
-        if (newReplays.Count > 0)
+        if (importState.IsRunning)
+            throw new InvalidOperationException("Import already running.");
+
+        importState.SetRunning(true);
+        importState.Start();
+        var progress = new Progress<ImportProgress>(importState.UpdateProgress);
+
+        try
         {
-            try
-            {
-                int decoded = await Decode(newReplays, token);
-                await UploadReplays(token);
-                logger.LogWarning("replays decoded: {decoded}", decoded);
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "{Message}", ex.Message);
-            }
+            decodeStatus ??= await GetDecodeStatus();
+            await DecodeAndImportAsync(decodeStatus, progress, importState.Token);
         }
-        if (jobCounter % 10 == 0)
+        finally
         {
-            await CheckForUpdates(token);
+            var final = importState.Progress;
+
+            var summary =
+                $"{final.Decoded:N0} replays decoded " +
+                $"in {FormatDuration(final.Elapsed)}";
+
+            importState.UpdateProgress(final with
+            {
+                Message = summary
+            });
+            importState.SetRunning(false);
+            importState.Complete();
+            var status = await GetDecodeStatus(default, true);
+            importState.SetDecodeStatus(status);
         }
-        jobCounter++;
     }
 
-    private void EnsurePrerequisites()
+    private static string FormatDuration(TimeSpan elapsed)
     {
-        sc2Dirs = GetMyDocumentsPathAllUsers().Select(s => Path.Combine(s, "Starcraft II")).ToList();
+        if (elapsed.TotalHours >= 1)
+            return elapsed.ToString(@"h\:mm\:ss");
 
-        if (!Directory.Exists(appFolder))
-        {
-            Directory.CreateDirectory(appFolder);
-        }
-        using var scope = scopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<ReplayContext>();
-        context.Database.Migrate();
+        if (elapsed.TotalMinutes >= 1)
+            return elapsed.ToString(@"m\:ss");
 
-        // If SC2 patch
-        // if (AppConfigOptions.Sc2Patch6)
-        // {
-        //     CheckExcludeReplaysAfterPatch(AppConfigOptions.Sc2Patch6Date);
-        //     AppConfigOptions.Sc2Patch6 = false;
-        //     SaveConfig(AppConfigOptions);
-        // }
+        return $"{elapsed.TotalSeconds:N0}s";
     }
 
-   private static List<string> GetMyDocumentsPathAllUsers()
+    #endregion
+
+    public void Dispose()
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return new();
-        }
-
-        const string parcialSubkey = @"\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders";
-        const string keyName = "Personal";
-
-        //get sids
-        List<string> sids = GetMachineSids();
-        List<string> myDocumentsPaths = new();
-
-        if (sids != null)
-        {
-            foreach (var sid in sids)
-            {
-                //get paths                  
-                var subkey = sid + parcialSubkey;
-
-                using var key = Registry.Users.OpenSubKey(subkey);
-                if (key != null)
-                {
-                    var o = key.GetValue(keyName);
-                    if (o != null)
-                    {
-                        var myDocumentPath = o.ToString();
-                        if (myDocumentPath != null)
-                        {
-                            myDocumentsPaths.Add(myDocumentPath);
-                        }
-                    }
-                }
-            }
-        }
-
-        return myDocumentsPaths;
-    }    
-
-    private static List<string> GetMachineSids()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return new();
-        }
-
-        ManagementObjectSearcher searcher = new("SELECT * FROM Win32_UserProfile");
-        var regs = searcher.Get();
-        List<string> sids = new();
-
-        foreach (ManagementObject os in regs.Cast<ManagementObject>())
-        {
-            if (os["SID"] != null)
-            {
-                var sid = os["SID"].ToString();
-                if (sid != null)
-                {
-                    sids.Add(sid);
-                }
-            }
-        }
-        searcher.Dispose();
-        return sids;
     }
 }
-
