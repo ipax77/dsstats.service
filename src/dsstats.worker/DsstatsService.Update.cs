@@ -9,7 +9,8 @@ public partial class DsstatsService
 
     private async Task CheckForUpdates(CancellationToken token)
     {
-        if (!AppOptions.CheckForUpdates)
+        var config = await GetConfigDto();
+        if (!config.CheckForUpdates)
         {
             return;
         }
@@ -87,3 +88,4 @@ public partial class DsstatsService
         return (new(0, 0, 0), "");
     }
 }
+

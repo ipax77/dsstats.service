@@ -21,35 +21,6 @@ public sealed partial class DsstatsService
 
     #region Progress Reporting
 
-    private async Task ReportProgressAsync(
-        IProgress<ImportProgress> progress,
-        int discovered,
-        CancellationToken ct)
-    {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
-
-        try
-        {
-            while (await timer.WaitForNextTickAsync(ct))
-            {
-                progress.Report(new ImportProgress(
-                    Volatile.Read(ref _total),
-                    discovered,
-                    Volatile.Read(ref _decoded),
-                    Volatile.Read(ref _imported),
-                    Volatile.Read(ref _errors),
-                    _uploadStatus,
-                    DateTime.UtcNow - _start,
-                    ImportStatus.Running
-                ));
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // expected
-        }
-    }
-
     private void ResetCounters()
     {
         _start = DateTime.UtcNow;

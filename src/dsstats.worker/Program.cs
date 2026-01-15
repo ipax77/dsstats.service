@@ -13,7 +13,7 @@ builder.Services.AddWindowsService(options =>
 });
 
 var sqliteConnectionString = $"Data Source={Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "dsstats.worker", "dsstats.db")}";
+            "dsstats.worker", "dsstats4.db")}";
 builder.Services.AddDbContext<DsstatsContext>(options => options
     .UseSqlite(sqliteConnectionString, sqlOptions =>
     {
@@ -24,11 +24,12 @@ builder.Services.AddDbContext<DsstatsContext>(options => options
 //.EnableSensitiveDataLogging()
 );
 
+var uploadUrl = builder.Environment.IsProduction() ? "https://dsstats.pax77.org" : "http://localhost:5279";
+
 builder.Services.AddHttpClient("dsstats")
     .ConfigureHttpClient(options =>
     {
-        options.BaseAddress = new Uri("https://dsstats.pax77.org");
-        // options.BaseAddress = new Uri("http://localhost:5116");
+        options.BaseAddress = new Uri(uploadUrl);
         options.DefaultRequestHeaders.Add("Accept", "application/json");
         options.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("DS8upload77");
     }).ConfigurePrimaryHttpMessageHandler(() =>

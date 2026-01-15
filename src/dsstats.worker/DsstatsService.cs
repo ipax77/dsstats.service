@@ -14,6 +14,10 @@ public sealed partial class DsstatsService(IServiceScopeFactory scopeFactory, IH
         TrackerEvents = true,
     };
 
+    private static readonly string appFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "dsstats.worker");
+    private static readonly string configFile = Path.Combine(appFolder, "workerconfig3.json");
+
     #region Public API
 
     public List<ReplayError> GetReplayErrors()
