@@ -100,7 +100,14 @@ sc.exe delete "dsstats.worker"
 
 # ChangeLog
 
-<details open="open"><summary>v2.1.0</summary>
+<details open="open"><summary>v3.0.0</summary>
+
+>- Update to dotnet10 - Source Code is available in the [dsstats GitHub project](https://github.com/ipax77/dsstats/tree/main/src/service) with tag `service3.0.0`
+>- WixToolset v6.0.2
+
+</details>
+
+<details><summary>v2.1.0</summary>
 
 >- s2protocol.NET v0.9.0 - IronPython requirements removed
 >- WixToolset v6.0.1
