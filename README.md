@@ -100,7 +100,13 @@ sc.exe delete "dsstats.worker"
 
 # ChangeLog
 
-<details open="open"><summary>v3.0.0</summary>
+<details open="open"><summary>v3.0.1</summary>
+
+>- Fix decoding new replays due to missing RatingsService (thanks to @TDV for reporting)
+
+</details>
+
+<details><summary>v3.0.0</summary>
 
 >- Update to dotnet10 - Source Code is available in the [dsstats GitHub project](https://github.com/ipax77/dsstats/tree/main/src/service) with tag `service3.0.0`
 >- WixToolset v6.0.2
