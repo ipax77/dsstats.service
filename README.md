@@ -102,6 +102,12 @@ sc.exe delete "dsstats.worker"
 
 <details open="open"><summary>v3.0.1</summary>
 
+>- Fix income calculation
+
+</details>
+
+<details><summary>v3.0.1</summary>
+
 >- Fix decoding new replays due to missing RatingsService (thanks to @TDV for reporting)
 
 </details>
