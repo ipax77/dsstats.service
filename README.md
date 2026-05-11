@@ -100,7 +100,13 @@ sc.exe delete "dsstats.worker"
 
 # ChangeLog
 
-<details open="open"><summary>v3.0.1</summary>
+<details open="open"><summary>v3.0.3</summary>
+
+>- Improved decoding performance
+
+</details>
+
+<details><summary>v3.0.1</summary>
 
 >- Fix income calculation
 
