@@ -23,7 +23,7 @@ If you prefer to have full control over what and when to decode and upload your 
 ## Configuration
 
 The configuration is automatically set up during installation and should work fine in most cases. However, if you need to make adjustments, you can do so using the following options:
-* **Location:** C:\WINDOWS\system32\config\systemprofile\AppData\Local\dsstats.worker\workerconfig.json (requires admin rights to access the path)
+* **Location:** C:\ProgramData\dsstats.worker\workerconfig.json (requires admin rights to access the path)
 * **ReplayStartName:** If you are running SC2 in a non-latin language and the Direct Strike replay names start differently, you can adjust the Direct Strike replay start name here.
 * **CustomFolders:** If you have replays at other places define them here.
 * **IgnoreProfiles:** If you want to prevent certain folders' replays from being uploaded, you can add them to the IgnoreProfiles list.
@@ -33,38 +33,36 @@ The configuration is automatically set up during installation and should work fi
 ### Sample Configuration
 ```json
 {
-    "AppOptions": {
-        "ConfigVersion": 2,
-        "AppGuid": "35952f38-ec21-407b-bc21-e8579b12cd9e",
-        "IgnoreProfiles": [
-            {
-                "Name": "PAX",
-                "PlayerId": {
-                    "ToonId": 12345,
-                    "RealmId": 1,
-                    "RegionId": 3
-                },
-                "Folder": "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\12345\\3-S2-1-12345\\Replays\\Multiplayer"
+    "ConfigVersion": 3,
+    "AppGuid": "35952f38-ec21-407b-bc21-e8579b12cd9e",
+    "IgnoreProfiles": [
+        {
+            "Name": "PAX",
+            "PlayerId": {
+                "ToonId": 12345,
+                "RealmId": 1,
+                "RegionId": 3
             },
-            {
-                "Name": "Xpax",
-                "PlayerId": {
-                    "ToonId": 54321,
-                    "RealmId": 1,
-                    "RegionId": 2
-                },
-                "Folder": "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\54321\\2-S2-1-54321\\Replays\\Multiplayer"
-            }
-        ],
-        "CustomFolders": [],
-        "CPUCores": 2,
-        "CheckForUpdates": true,
-        "UploadCredential": true,
-        "IgnoreReplays": [
-            "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\12345\\2-S2-1-12345\\Replays\\Multiplayer\\Direct Strike Test.SC2Replay"
-        ],
-        "ReplayStartName": "Direct Strike"
-    }
+            "Folder": "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\12345\\3-S2-1-12345\\Replays\\Multiplayer"
+        },
+        {
+            "Name": "Xpax",
+            "PlayerId": {
+                "ToonId": 54321,
+                "RealmId": 1,
+                "RegionId": 2
+            },
+            "Folder": "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\54321\\2-S2-1-54321\\Replays\\Multiplayer"
+        }
+    ],
+    "CustomFolders": [],
+    "CPUCores": 2,
+    "CheckForUpdates": true,
+    "UploadCredential": true,
+    "IgnoreReplays": [
+        "C:\\Users\\pax77\\Documents\\StarCraft II\\Accounts\\12345\\2-S2-1-12345\\Replays\\Multiplayer\\Direct Strike Test.SC2Replay"
+    ],
+    "ReplayStartName": "Direct Strike"
 }
 ```
 
@@ -100,7 +98,15 @@ sc.exe delete "dsstats.worker"
 
 # ChangeLog
 
-<details open="open"><summary>v3.0.4</summary>
+<details open="open"><summary>v3.0.6</summary>
+
+>- Fix Windows Service replay import startup by registering the EF Core context factory required by ImportService
+>- Move service configuration/database to C:\ProgramData\dsstats.worker and migrate existing local worker data
+>- Improve startup, scan, decode, import and upload diagnostics in Windows Event Log
+
+</details>
+
+<details><summary>v3.0.4</summary>
 
 >- Improved decoding performance / playback
 
