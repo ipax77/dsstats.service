@@ -98,7 +98,13 @@ sc.exe delete "dsstats.worker"
 
 # ChangeLog
 
-<details open="open"><summary>v3.0.6</summary>
+<details open="open"><summary>v3.0.8</summary>
+
+>- Add special units and scan information
+
+</details>
+
+<details><summary>v3.0.6</summary>
 
 >- Fix Windows Service replay import startup by registering the EF Core context factory required by ImportService
 >- Move service configuration/database to C:\ProgramData\dsstats.worker and migrate existing local worker data
