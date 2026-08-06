@@ -98,7 +98,15 @@ sc.exe delete "dsstats.worker"
 
 # ChangeLog
 
-<details open="open"><summary>v3.0.8</summary>
+<details open="open"><summary>v3.0.10</summary>
+
+>- Fix automatic update packaging so Windows Installer performs a proper version upgrade
+>- Suspend replay and database processing while the updater replaces the service, preventing transient SQLite connection errors
+>- Reduce updater memory usage by streaming and validating downloads while preserving the existing installer if validation fails
+
+</details>
+
+<details><summary>v3.0.8</summary>
 
 >- Add special units and scan information
 
